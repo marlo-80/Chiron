@@ -1,0 +1,15 @@
+services:
+  extractor:
+    container_name: Mimir
+    build:
+      context: .
+      dockerfile: dockerfile  
+    volumes:
+      - ../data/1_paper_tars:/data/input:ro
+      - ../data/2_finished_dataframes:/data/output
+      - ../data/dtd/JATS-Archiving-1-3-MathML3-DTD:/dtd:ro
+      - ./src:/app               # Code-Ordner live gemountet
+    environment:
+      - INPUT_DIR=/data/input
+      - OUTPUT_DIR=/data/output
+      - DTD_DIR=/dtd

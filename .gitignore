@@ -225,3 +225,6 @@ notebooks/NewRAGs/chunk_embeddings.pkl
 
 
 .python-version
+notebooks
+data
+src
