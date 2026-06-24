@@ -21,6 +21,8 @@ https://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_bulk/oa_noncomm/xml/oa_noncomm_xml.PMC00
 https://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_bulk/oa_noncomm/xml/oa_noncomm_xml.incr.2026-03-04.tar.gz
 * Small data set for proof of concept testing
 
+NVIDIA GPU (optional)
+Make sure your docker installation can use the GPU
 
 ## Set up your Environment
 
@@ -60,7 +62,8 @@ The added [requirements file](requirements.txt) contains all libraries and depen
     pip install -r requirements.txt
     ```
 
-
-
+## GPU Utilisation
+To use your GPU for faster processing make sure to install the correct PyTorch version for your CUDA installation. By default Mimir installs the most currrent torch version.
+If you need a different version adjust the `docker/dockerfile`
   
 

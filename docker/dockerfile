@@ -2,6 +2,9 @@ FROM python:3.11-slim
 RUN apt-get update && apt-get install -y libxml2-dev libxslt-dev build-essential
 COPY requirements.txt .
 RUN pip install --upgrade pip
+RUN pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_sm-0.5.4.tar.gz
+RUN pip install torch==2.11.0 torchvision==0.26.0 torchaudio==2.11.0 --index-url https://download.pytorch.org/whl/cu128
 RUN pip install -r requirements.txt
+COPY src/ /app/
 WORKDIR /app
 CMD ["tail", "-f", "/dev/null"]
