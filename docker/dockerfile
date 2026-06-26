@@ -1,10 +1,45 @@
-FROM python:3.11-slim
-RUN apt-get update && apt-get install -y libxml2-dev libxslt-dev build-essential
+# 1. Sauberes Python 3.11 Basis-Image
+FROM python:3.11-bookworm
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# 2. System-Pakete für C-Kompilierung und Git installieren
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libxml2-dev \
+    libxslt-dev \
+    build-essential \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir --upgrade pip
+
+# 3. PyTorch exakt für CUDA 12.6 gepinnt laden
 COPY requirements.txt .
-RUN pip install --upgrade pip
-RUN pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_sm-0.5.4.tar.gz
-RUN pip install torch==2.11.0 torchvision==0.26.0 torchaudio==2.11.0 --index-url https://download.pytorch.org/whl/cu128
-RUN pip install -r requirements.txt
-COPY src/ /app/
+RUN pip install --no-cache-dir \
+    torch==2.6.0+cu126 \
+    torchvision==0.21.0+cu126 \
+    torchaudio==2.6.0+cu126 \
+    --index-url https://download.pytorch.org/whl/cu126
+
+# 4. Deine restlichen Projektabhängigkeiten installieren (Hier wird deine requirements.txt verarbeitet)
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 5. SciSpacy Sprachmodell direkt von S3 installieren
+RUN pip install --no-cache-dir https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_sm-0.5.4.tar.gz
+
+# 🚨 EFFIZIENTER CLONE: Wir installieren NUR die Minimal-Requirements des Frameworks
 WORKDIR /app
-CMD ["tail", "-f", "/dev/null"]
+RUN git clone https://github.com/open-webui/pipelines.git . && \
+    pip install --no-cache-dir -r requirements-minimum.txt
+
+# 6. Kopiere deine validierte RAG-Schnittstelle in das Autoload-Verzeichnis von Open WebUI
+#COPY src/chiron_pipeline.py /app/pipelines/main.py
+
+# Füge deine Quellcode-Ordner dem Python-Suchpfad hinzu
+ENV PYTHONPATH=/app:/app/src
+
+EXPOSE 9099
+
+# 🚀 Offizieller Startbefehl
+ENTRYPOINT [ "bash", "start.sh" ]
