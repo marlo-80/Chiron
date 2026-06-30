@@ -1,21 +1,33 @@
+# =============================================================================
+# db_config.yml – Query & filter configuration for the Chiron RAG database.
+# This file is read by fetch.py to build the PubMed/PMC search query.
+# =============================================================================
+
 data_selection:
+  # -------------------------------------------------------------------------
+  # 2. 1. TIME PERIOD – publication date range [DP]
+  # -------------------------------------------------------------------------
   time_period: "2015:2026"
 
-  # 1. KEYWORDS [TIAB] (Jetzt mit exakt zwei OR-Gruppen)
+  # -------------------------------------------------------------------------
+  # 2. KEYWORDS – searched in Title & Abstract [TIAB]
+  # -------------------------------------------------------------------------
   keywords:
+    # Terms that MUST appear in every paper
     must_contain:
       - "diabetes"
-    
+
+    # OR‑groups: at least one term from each group must match
     or_groups:
-      # Erste OR-Gruppe: Klinische und therapeutische Ansätze
+      # Group A – clinical & therapeutic aspects
       - - "complications"
         - "management"
         - "therapy"
         - "treatment"
         - "clinical"
         - "risk"
-      
-      # Zweite OR-Gruppe: Studiendesign und Probanden (Breit gewählt, um Masse zu halten)
+
+      # Group B – study design & population
       - - "patients"
         - "population"
         - "cohort"
@@ -23,11 +35,14 @@ data_selection:
         - "study"
         - "trials"
 
+    # Terms that must NOT appear
     must_not_contain:
       - "in vitro"
       - "animal model"
 
-  # 2. JOURNALS [TA] (Unverändert breit für maximales Volumen)
+  # -------------------------------------------------------------------------
+  # 3. JOURNALS – searched in Journal Title [TA]
+  # -------------------------------------------------------------------------
   journals:
     must_contain: []
     or_groups:
@@ -42,7 +57,9 @@ data_selection:
         - "Nature Communications"
     must_not_contain: []
 
-  # 3. MESH SUBJECTS [MH] (Bleibt leer, um die API-Bremse zu vermeiden)
+  # -------------------------------------------------------------------------
+  # 4. MESH SUBJECTS – searched in MeSH Headings [MH]
+  # -------------------------------------------------------------------------
   mesh_subjects:
     must_contain: []
     or_groups: []

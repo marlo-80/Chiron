@@ -1,10 +1,13 @@
-# 1. Sauberes Python 3.11 Basis-Image
+# =============================================================================
+# Dockerfile – Chiron RAG Pipeline (offline PubMed retrieval & indexing)
+# =============================================================================
+# 1. CLEAN PYTHON 3.11 BASE IMAGE
 FROM python:3.11-bookworm
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-# 2. System-Pakete für C-Kompilierung und Git installieren
+# 2. SYSTEM PACKAGES FOR C COMPILATION
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libxml2-dev \
     libxslt-dev \
@@ -12,9 +15,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
+# 3. UPGRADE PIP
 RUN pip install --no-cache-dir --upgrade pip
 
-# 3. PyTorch exakt für CUDA 12.6 gepinnt laden
+# 4. PYTORCH WITH CUDA 12.6 SUPPORT
 COPY requirements.txt .
 RUN pip install --no-cache-dir \
     torch==2.6.0+cu126 \
@@ -22,24 +26,15 @@ RUN pip install --no-cache-dir \
     torchaudio==2.6.0+cu126 \
     --index-url https://download.pytorch.org/whl/cu126
 
-# 4. Deine restlichen Projektabhängigkeiten installieren (Hier wird deine requirements.txt verarbeitet)
+# 5. PROJECT DEPENDENCIES
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 5. SciSpacy Sprachmodell direkt von S3 installieren
+# 6. SCISPACY LANGUAGE MODEL
 RUN pip install --no-cache-dir https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_sm-0.5.4.tar.gz
 
-# 🚨 EFFIZIENTER CLONE: Wir installieren NUR die Minimal-Requirements des Frameworks
+# 7. ADD PROJECT SOURCES TO PYTHONPATH
 WORKDIR /app
-RUN git clone https://github.com/open-webui/pipelines.git . && \
-    pip install --no-cache-dir -r requirements-minimum.txt
-
-# 6. Kopiere deine validierte RAG-Schnittstelle in das Autoload-Verzeichnis von Open WebUI
-#COPY src/chiron_pipeline.py /app/pipelines/main.py
-
-# Füge deine Quellcode-Ordner dem Python-Suchpfad hinzu
 ENV PYTHONPATH=/app:/app/src
 
-EXPOSE 9099
-
-# 🚀 Offizieller Startbefehl
-ENTRYPOINT [ "bash", "start.sh" ]
+# 8. KEEP CONTAINER ALIVE (batch jobs are executed via `docker exec`)
+CMD ["tail", "-f", "/dev/null"]
