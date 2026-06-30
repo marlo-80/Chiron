@@ -1,5 +1,8 @@
-# Mimir_An_Offline_RAG_System_for_PubMed_Scientific_Paper
-This projects creates on Retrieval Augmented Generation (RAG) system that answers medical questions. PubMed papers are chunked by meaningful sections and embedded using PubMedBERT. The retrieval is based on FAISS vector search while the Large Language Model (LLM) utilized can be freely defined using OLLAMA.
+# Chiron: Your Personal Offline RAG System for PubMed Scientific Paper
+This projects creates on Retrieval Augmented Generation (RAG) system that answers medical questions on the basis of the PubMed open access medical data. It contains more than 8 million papers comprising the vast majority of research areas in the field of medicine. To reduce those data to an amount a consumer PC can handle you can specify your personal data base. You can use time, scientific field, journal, keywords to define the data you are interested in.
+
+
+PubMed papers are chunked by meaningful sections and embedded using PubMedBERT. The retrieval is based on FAISS vector search while the Large Language Model (LLM) utilized can be freely defined using OLLAMA.
 
 ### Disclaimer
 The Pubmed database is too big to use its entirety for an offline RAG system that runs on a consumer PC. So, the aim of this project is not to build a professional expert system for medical questions but to demonstrate how a RAG system for offline usage can be build. Hence, we only take a representative sub sample from the papers. Additionally, papers also need to meet certain formal criteria to be added to the data base. 

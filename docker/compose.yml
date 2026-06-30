@@ -1,6 +1,6 @@
 services:
   chiron:
-    container_name: Mimir
+    container_name: Chiron
     ipc: host
     privileged: true  
     build:
@@ -9,7 +9,7 @@ services:
     ports:
       - "9099:9099"
     volumes:
-      - ../data/1_paper_tars:/data/input:ro
+      - ../data/1_papers_xml:/data/1_papers_xml 
       - ../data/2_finished_dataframes:/data/output
       - ../data/3_chunks:/data/3_chunks
       - ../data/4_embeddings:/data/4_embeddings
@@ -20,8 +20,9 @@ services:
       - ../data/hf_cache:/root/.cache/huggingface
       - ./scripts:/scripts
       - ./src:/app/src
-      # 🚨 KORREKTUR: Als eigenständiges Plugin in den Autoload-Ordner mappen
       - ./src/chiron_pipeline.py:/app/pipelines/chiron_pipeline.py
+      - ./db_config.yml:/app/db_config.yml
+
 
     environment:
       - INPUT_DIR=/data/input
@@ -35,6 +36,9 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=all
       # 🚨 DIESE ZEILE ERGÄNZEN: Zwingt das Framework, Caches bei jedem Booten zu vernichten!
       - RESET_PIPELINES_DIR=true
+      - NCBI_EMAIL=your.email@example.com 
+      - DB_CONFIG_PATH=/app/db_config.yml
+      - HOST_OUTPUT_DIR=../data/2_finished_dataframes
     deploy:
       resources:
         reservations:

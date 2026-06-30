@@ -1,0 +1,49 @@
+data_selection:
+  time_period: "2015:2026"
+
+  # 1. KEYWORDS [TIAB] (Jetzt mit exakt zwei OR-Gruppen)
+  keywords:
+    must_contain:
+      - "diabetes"
+    
+    or_groups:
+      # Erste OR-Gruppe: Klinische und therapeutische Ansätze
+      - - "complications"
+        - "management"
+        - "therapy"
+        - "treatment"
+        - "clinical"
+        - "risk"
+      
+      # Zweite OR-Gruppe: Studiendesign und Probanden (Breit gewählt, um Masse zu halten)
+      - - "patients"
+        - "population"
+        - "cohort"
+        - "data"
+        - "study"
+        - "trials"
+
+    must_not_contain:
+      - "in vitro"
+      - "animal model"
+
+  # 2. JOURNALS [TA] (Unverändert breit für maximales Volumen)
+  journals:
+    must_contain: []
+    or_groups:
+      - - "PLOS ONE"
+        - "Scientific Reports"
+        - "BMJ Open"
+        - "Diabetes Care"
+        - "Diabetologia"
+        - "Diabetes"
+        - "Frontiers in Endocrinology"
+        - "BMC Medicine"
+        - "Nature Communications"
+    must_not_contain: []
+
+  # 3. MESH SUBJECTS [MH] (Bleibt leer, um die API-Bremse zu vermeiden)
+  mesh_subjects:
+    must_contain: []
+    or_groups: []
+    must_not_contain: []
