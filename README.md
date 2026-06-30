@@ -1,72 +1,208 @@
-# Chiron: Your Personal Offline RAG System for PubMed Scientific Paper
-This projects creates on Retrieval Augmented Generation (RAG) system that answers medical questions on the basis of the PubMed open access medical data. It contains more than 8 million papers comprising the vast majority of research areas in the field of medicine. To reduce those data to an amount a consumer PC can handle you can specify your personal data base. You can use time, scientific field, journal, keywords to define the data you are interested in.
+# Chiron – Your Personal Offline RAG System for PubMed Scientific Papers
+
+Chiron builds a custom, offline Retrieval Augmented Generation (RAG) database from PubMed’s open‑access papers. It lets you define exactly which medical topics, journals, and time periods matter to you, downloads only the relevant full‑text articles, and turns them into a searchable index that you can query with any language model you run locally via Ollama.
+
+---
 
 
-PubMed papers are chunked by meaningful sections and embedded using PubMedBERT. The retrieval is based on FAISS vector search while the Large Language Model (LLM) utilized can be freely defined using OLLAMA.
+<img src="data/golden_data/chiron.png" alt="Description" width="600">
 
-### Disclaimer
-The Pubmed database is too big to use its entirety for an offline RAG system that runs on a consumer PC. So, the aim of this project is not to build a professional expert system for medical questions but to demonstrate how a RAG system for offline usage can be build. Hence, we only take a representative sub sample from the papers. Additionally, papers also need to meet certain formal criteria to be added to the data base. 
 
-PubMed paper contain complex knowledge that can be accessed for free. Additionally, one can find curated question and answer datasets for selected PubMed papers. For these reasons, PubMed papers are a perfect use case to demonstrate the capabilities of this RAG system.
 
-However, the performance of this RAG system is rather poor in answering medical questions. This is not because of the retrieval of relevant information but the LLM performance. Mimir reliably retrieves the correct chunks from the data base but the offline LLM is unable to derive the correct answers from those chunks. 
+---
 
-## Prerquisites
-Download PubMed papers for non-commercial use:
-`https://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_bulk/oa_noncomm/xml/oa_noncomm_xml.PMC003xxxxxx.baseline.2026-01-23.tar.gz`
+## What Chiron Does
 
-Install Ollama and add on LLM of your choice.
+- **Fetches targeted PubMed papers** – Instead of downloading millions of irrelevant articles, Chiron queries the PubMed API with your search criteria (keywords, journals, date range, MeSH terms). It then streams the matching full‑text XMLs directly from the PMC S3 bucket and processes them on the fly.
+- **Extracts structured text** – Each paper is parsed into its sections (abstract, introduction, methods, results, discussion, conclusion) and only high‑quality articles with sufficient content are kept.
+- **Chunks and embeds** – The articles are split into overlapping sentence‑level chunks using spaCy’s biomedical model. Every chunk is converted into a 768‑dimensional vector by PubMedBERT.
+- **Creates a FAISS index** – The embeddings are stored in a FAISS index for fast cosine‑similarity retrieval.
+- **Answers questions (evaluation mode)** – With the golden‑questions test set, Chiron can evaluate how well the system works. It retrieves the most relevant chunks and sends them together with the question to a language model (Biomistral, Mistral, or any Ollama model) to get a yes/no/maybe answer.
 
-Download Data
-https://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_bulk/oa_noncomm/xml/oa_noncomm_xml.PMC003xxxxxx.baseline.2026-01-23.tar.gz
-* Big data set to extract training and test data
+---
 
-https://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_bulk/oa_noncomm/xml/oa_noncomm_xml.incr.2026-03-04.tar.gz
-* Small data set for proof of concept testing
+## How It Works (Pipeline Overview)
 
-NVIDIA GPU (optional)
-Make sure your docker installation can use the GPU
+The entire process runs inside Docker and is orchestrated by a single script (`setup.sh`). The main steps are:
 
-## Set up your Environment
+1. **Fetch** (`fetch.py`)  
+   - Reads the configuration from `db_config.yml`.  
+   - Constructs a complex PubMed query (Boolean AND/OR/NOT across keywords, journals, time period).  
+   - Retrieves all matching PMC IDs via the NCBI E‑utilities.  
+   - Offers an interactive choice: download all papers or a subset (latest N or random N).  
+   - Downloads the XML files directly from the AWS S3 bucket and extracts the article data.  
+   - Inserts the articles into a local SQLite database (`/data/database/database.db`).  
 
-The added [requirements file](requirements.txt) contains all libraries and dependencies we need to execute the notebooks.
+2. **Merge golden papers** (`merge_golden.py`) *(only if the golden test set is requested)*  
+   - Adds the 69 pre‑curated PubMedQA papers into the database so that the evaluation step can use them.  
 
-### **`macOS`** type the following commands : 
+3. **Chunking** (`chunk.py`)  
+   - Reads all articles from the SQLite database.  
+   - Splits each article’s textual sections into overlapping chunks of 10 sentences (configurable).  
+   - Saves the chunks and their metadata to `/data/chunks/`.  
 
-- Install the virtual environment and the required packages by following commands:
+4. **Embedding** (`embed.py`)  
+   - Uses PubMedBERT (via Sentence‑Transformers) to convert every chunk into a 768‑dimensional vector.  
+   - Stores the embeddings in `/data/embeddings/`.  
 
-    ```BASH
-    pyenv local 3.11.3
-    python -m venv .venv
-    source .venv/bin/activate
-    pip install --upgrade pip
-    pip install -r requirements.txt
+5. **FAISS Index** (`faiss_index.py`)  
+   - Normalises the embeddings and builds a FAISS `IndexFlatIP` for fast cosine‑similarity retrieval.  
+   - Saves the index to `/data/faiss/`.  
+
+6. **Evaluation** (`evaluation.py`) *(only if golden papers are included)*  
+   - Loads the 69 golden questions, retrieves the top‑k chunks, and asks the configured LLM (via Ollama) to answer with “yes”, “no”, or “maybe”.  
+   - Calculates accuracy, precision, recall, F1, and a confusion matrix.  
+   - Results are saved to `/data/evaluation/`.  
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- **Docker** and **Docker Compose** with NVIDIA GPU support (optional but strongly recommended for embedding and LLM inference).  
+- **Ollama** (either installed on the host or running in a separate container – the project already includes an Ollama container in the Docker Compose setup).  
+- An **NCBI account** (free) to get an API key (optional but raises the request rate from 3 to 10 per second).  
+- About **20 GB free disk space** for the Docker image, models, and your personal database.
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <your-repo-url>
+   cd Chiron
     ```
-### **`WindowsOS`** type the following commands :
+2. **Configure your database**  
+   Edit `docker/db_config.yml` to define your desired set of papers.  
+   Example:  
+   ```yaml
+   data_selection:
+     time_period: "2015:2026"
+     keywords:
+       must_contain:
+         - "diabetes"
+       or_groups:
+         - - "complications"
+           - "management"
+         - - "patients"
+           - "cohort"
+       must_not_contain:
+         - "in vitro"
+     journals:
+       or_groups:
+         - - "PLOS ONE"
+           - "Diabetes Care"
+     mesh_subjects: {}
+   ```
+   The schema is flexible: each filter category (`keywords`, `journals`, `mesh_subjects`) supports `must_contain`, `or_groups`, and `must_not_contain`.
 
-- Install the virtual environment and the required packages by following commands.
+3. **Set your NCBI email**  
+   In `docker/compose.yml`, replace `your.email@example.com` with your own email (required by NCBI for API access).
 
-   For `PowerShell` CLI :
+4. **(Optional) Adjust model and evaluation settings**  
+   In `docker/src/evaluation.py` you can change `MODEL_NAME` to any Ollama model you have pulled. The default is `cniongolo/biomistral`.
 
-    ```PowerShell
-    pyenv local 3.11.3
-    python -m venv .venv
-    .venv\Scripts\Activate.ps1
-    pip install --upgrade pip
-    pip install -r requirements.txt
-    ```
+### Building and Starting the Containers
 
-    For `Git-Bash` CLI :
-    ```
-    pyenv local 3.11.3
-    python -m venv .venv
-    source .venv/Scripts/activate
-    pip install --upgrade pip
-    pip install -r requirements.txt
-    ```
+```bash
+docker compose -f docker/compose.yml build
+docker compose -f docker/compose.yml up -d
+```
 
-## GPU Utilisation
-To use your GPU for faster processing make sure to install the correct PyTorch version for your CUDA installation. By default Mimir installs the most currrent torch version.
-If you need a different version adjust the `docker/dockerfile`
-  
+This will start three containers:
+- **Chiron** – the main pipeline worker.
+- **ollama** – the LLM server (GPU‑enabled if correctly configured).
+- **openwebui** – a web interface for interacting with Ollama (optional).
 
+### Pull a Language Model
+
+Before evaluating, you need an LLM. Enter the Ollama container and pull your preferred model:
+
+```bash
+docker compose -f docker/compose.yml exec ollama ollama pull biomistral:7b
+```
+
+(Any model that works with Ollama will work, e.g., `mistral`, `llama3`, `cniongolo/biomistral`.)
+
+---
+
+## Usage
+
+### Create / Update the Database
+
+Run the main setup script from the project root:
+
+```bash
+./setup.sh
+```
+
+The script will:
+- Ask whether you want to add the golden test papers (for evaluation).
+- Ask for the number of papers (subset) and how to select them (latest/random).
+- Fetch, process, chunk, embed, and build the index.
+- If golden papers were requested, it will also merge them and run the evaluation.
+
+All data is stored in the `data/` directory on your host. The structure is:
+
+```
+data/
+├── database/        # SQLite article database
+├── chunks/          # pickled chunks and metadata
+├── embeddings/      # numpy embeddings and metadata
+├── faiss/           # FAISS index
+├── evaluation/      # evaluation results (CSV, JSON)
+├── golden_data/     # the 69 golden questions and their papers
+├── dtd/             # JATS DTD files (required for XML parsing)
+└── hf_cache/        # HuggingFace model cache (PubMedBERT etc.)
+```
+
+### Run Only the Evaluation (after setup)
+
+If you already have a database and index, you can re‑evaluate with:
+
+```bash
+docker compose -f docker/compose.yml exec chiron python /app/src/evaluation.py
+```
+
+---
+
+## Project Structure
+
+```
+Chiron/
+├── docker/
+│   ├── compose.yml
+│   ├── dockerfile
+│   ├── requirements.txt
+│   ├── db_config.yml          # your custom query
+│   ├── scripts/
+│   │   └── setup.sh           # internal script called by root ./setup.sh
+│   └── src/
+│       ├── fetch.py
+│       ├── merge_golden.py
+│       ├── chunk.py
+│       ├── embed.py
+│       ├── faiss_index.py
+│       ├── retrieval.py
+│       ├── evaluation.py
+│       ├── config.py
+│       ├── schema.py
+│       └── chiron_pipeline.py # Open WebUI pipeline (optional)
+├── data/                      # (created after first run)
+├── setup.sh                   # root convenience script
+└── README.md
+```
+
+---
+
+## Disclaimer
+
+The PubMed database is far too large for a complete offline system on consumer hardware. Chiron therefore selects a **subset** of papers based on your configuration. Additionally, articles must meet certain formal quality criteria (minimum abstract length, sufficient full‑text content) to be included.
+
+PubMed papers are freely available and are paired with a curated question‑and‑answer dataset (PubMedQA), making them an ideal sandbox for RAG systems. However, the **language model performance is limited**: Chiron’s retrieval reliably finds the correct document chunks, but current offline LLMs still struggle to derive the correct yes/no/maybe answers from those chunks. This project is a demonstration of how a targeted, offline RAG pipeline can be built – not a professional medical decision support system.
+
+---
+
+## License & Acknowledgements
+
+This project is intended for non‑commercial research and educational use only. All PubMed articles retain their original copyright and license terms. Please refer to the individual papers for specific usage conditions.

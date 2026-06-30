@@ -207,26 +207,10 @@ marimo/_lsp/
 __marimo__/
 
 
-Data/
-.venv*
-requirements*
-PubMed/
-big_data/
-PubMed_QA/
-RAGAS_Testing/
-Dataset/
-Dataset
-*.tar.gz
-Ze\ Dump/
-
-Models
-Modelresults
-notebooks/NewRAGs/chunk_embeddings.pkl
-
 
 .python-version
 notebooks
 data
-src
+!data/golden_data/
 
 ZeTrash
