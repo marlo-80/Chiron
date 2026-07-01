@@ -1,30 +1,38 @@
-jupyterlab==4.3.6
-ipykernel
+# Core data handling
 numpy==1.26.4
 pandas==2.2.2
+
+# Machine learning & evaluation
 scikit-learn==1.6.1
-scikit-surprise==1.1.4
-matplotlib==3.10.1
-seaborn==0.13.2
 
-datasets==2.16.0
-
-
+# XML processing
 lxml==6.1.1
+
+# NLP & embedding
 sentence-transformers==5.6.0
 spacy>=3.7.4,<3.8.0
 spacy-legacy==3.0.12
 spacy-loggers==1.0.5
-scispacy==0.5.4
+# scispacy is installed separately in the Dockerfile (tar.gz)
 
+# Progress bars
 tqdm==4.68.3
+
+# Transformers (only used by sentence-transformers internally)
 transformers==5.12.1
-accelerate==1.14.0
-click==8.4.1
+
+# FAISS for vector retrieval
 faiss-cpu==1.14.3
 
-boto3
-pyyaml
-biopython
-requests
-sqlite3
+# PubMed API & S3 access
+biopython==1.87              # ← pin after running pip freeze
+boto3==1.43.36                   # ← pin after running pip freeze
+
+# YAML config parsing
+PyYAML==6.0.3                 # ← pin after running pip freeze
+
+# HTTP requests (evaluation.py)
+requests==2.32               # ← pin after running pip freeze
+
+# CLI helper (required by spaCy internally, explicit avoids import error)
+click==8.4.1
