@@ -92,6 +92,9 @@ def process_paper_chunking(paper_row_tuple):
                     'pmcid': row['pmcid'],
                     'title': row['title'],
                     'year': row['year'],
+                    'authors': row.get('authors', ''),
+                    'journal': row.get('journal', ''),          
+                    'doi': row.get('doi', ''),                  
                     'section': sektion,
                     'chunk_index_in_paper': chunk_counter,
                     'chunk_length': len(chunk_text.split())

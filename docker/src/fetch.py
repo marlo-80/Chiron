@@ -395,7 +395,6 @@ else:
     final_query = " AND ".join(query_parts)
 
 print("--- GENERATED PubMed QUERY ---")
-print(final_query)
 print("----------------------------------------------\n")
 
 # =============================================================================
@@ -744,4 +743,4 @@ if errors:
     err_df.to_csv(ERROR_CSV_PATH, index=False)
     tqdm.write(f"{len(errors)} processing errors saved to {ERROR_CSV_PATH}.")
 
-print("\nPipeline execution fully completed.")
+print("\nFetching fully completed.")

@@ -85,12 +85,17 @@ class Pipeline:
                 kontext_blocks.append(f"[Source {source_num}]\n{text_chunk}\n")
                 
                 # Read metadata
+                authors = metadata.get("authors", "Unknown Authors")
                 title = metadata.get("title", "Unknown Title")
-                pmcid = metadata.get("pmcid", metadata.get("id", "Unknown ID"))
-                year = metadata.get("year", metadata.get("date", "N/A"))
-                authors = metadata.get("authors", metadata.get("author", "Unknown Authors"))
-                
-                quellen_verzeichnis.append(f"[{source_num}] *{authors} ({year}).* **{title}** (PMCID: {pmcid})")
+                year = metadata.get("year", "N/A")
+                journal = metadata.get("journal", "Unknown Journal")
+                doi = metadata.get("doi", "N/A")
+                pmcid = metadata.get("pmcid", "Unknown ID")
+
+                quellen_verzeichnis.append(
+                    f"[{source_num}] {authors} ({year}). **{title}**. "
+                    f"*{journal}*. DOI: {doi} (PMCID: {pmcid})"
+                )     
 
             kontext = "\n".join(kontext_blocks).strip()
 

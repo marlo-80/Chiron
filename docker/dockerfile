@@ -34,7 +34,17 @@ RUN pip install --no-cache-dir https://s3-us-west-2.amazonaws.com/ai2-s2-scispac
 
 # 7. ADD PROJECT SOURCES TO PYTHONPATH
 WORKDIR /app
+RUN git clone https://github.com/open-webui/pipelines.git . && \
+    pip install --no-cache-dir -r requirements-minimum.txt
+
+# Copy your validated pipeline script into the autoload folder
+COPY src/chiron_pipeline.py /app/pipelines/chiron_pipeline.py
+
+# Make sure Python can find your source code
 ENV PYTHONPATH=/app:/app/src
 
-# 8. KEEP CONTAINER ALIVE (batch jobs are executed via `docker exec`)
-CMD ["tail", "-f", "/dev/null"]
+# Expose the port Open WebUI will connect to
+EXPOSE 9099
+
+# 8. Start the pipelines server
+CMD ["bash", "start.sh"]

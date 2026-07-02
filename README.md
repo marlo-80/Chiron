@@ -4,9 +4,9 @@ Chiron builds a custom, offline Retrieval Augmented Generation (RAG) database fr
 
 ---
 
-
-<img src="data/golden_data/chiron.png" alt="Description" width="600">
-
+<p align="center">
+<img src="data/golden_data/chiron.png" alt="Description" width="800">
+</p>
 
 
 ---
@@ -119,7 +119,7 @@ This will start three containers:
 Before evaluating, you need an LLM. Enter the Ollama container and pull your preferred model:
 
 ```bash
-docker compose -f docker/compose.yml exec ollama ollama pull biomistral:7b
+docker compose -f docker/compose.yml exec ollama ollama pull llama3-gradient:8b
 ```
 
 (Any model that works with Ollama will work, e.g., `mistral`, `llama3`, `cniongolo/biomistral`.)
