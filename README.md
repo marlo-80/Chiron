@@ -58,17 +58,17 @@ The entire process runs inside Docker and is orchestrated by a single script (`s
 ## Getting Started
 
 ### Prerequisites
-- **Docker** and **Docker Compose**
-- About **5 GB free disk space** for the Docker image, models, and your personal database. Depends on the number of downloaded papers. 
+- **Docker** and **Docker Compose** | [Link](https://www.docker.com/products/docker-desktop/)
+- About **>5 GB free disk space** for the Docker image, models, and your personal database. Depends on the number of downloaded papers. 
 
 
 #### Optional:  
-- An **NCBI account** (free) to get an API key (optional but raises the request rate from 3 to 10 per second).  
+- An **NCBI account** (free) to get an API key (optional but raises the request rate from 3 to 10 per second). | [Link](https://account.ncbi.nlm.nih.gov/signup/) 
 
 #### For GPU utilization only:
-- Nvidia container toolkit
+- Nvidia container toolkit | [Link](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) 
 
-## Installation
+### Installation
 
 1. **Clone the repository**
    ```bash
