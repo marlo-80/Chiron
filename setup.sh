@@ -13,6 +13,21 @@ echo "==========================================================================
 echo "Setup checks starting..."
 
 # 1. Required directories
+
+for d in /data/chunks /data/embeddings /data/faiss /data/evaluation; do
+    if ! docker compose -f docker/compose.yml exec -T chiron test -d "$d"; then
+        echo "Creating folder: $d"
+        docker compose -f docker/compose.yml exec -T chiron mkdir -p "$d" || {
+            echo "Error during creation of $d"
+            exit 1
+        }
+        echo "$d Folder created!"
+    else
+        echo "."
+    fi
+done
+
+
 for d in /data/database /data/chunks /data/embeddings /data/faiss /data/evaluation /data/golden_data /dtd; do
     if ! docker compose -f docker/compose.yml exec -T chiron test -d "$d"; then
         echo "ERROR: $d not found inside the Chiron container. Check your Docker volume mounts."

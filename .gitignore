@@ -210,7 +210,7 @@ __marimo__/
 
 .python-version
 notebooks
-# data
-# !data/golden_data/
+data
+!data/golden_data/
 
 ZeTrash
