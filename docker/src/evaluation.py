@@ -18,6 +18,7 @@ Requires:
     config.py      – GOLDEN_DIR, EVAL_DIR
     golden69_questions.pkl in the golden data directory.
 """
+print("Evaluation starting...\n")
 
 import time, json, pickle
 import pandas as pd
@@ -33,6 +34,8 @@ import json
 EVAL_DIR.mkdir(parents=True, exist_ok=True)
 OLLAMA_CHAT_URL = "http://ollama:11434/api/chat"
 
+
+
 # =============================================================================
 # MODEL SETTINGS
 # =============================================================================
@@ -47,7 +50,7 @@ OLLAMA_GENERATE_URL = "http://ollama:11434/api/generate"
 # HELPER FUNCTIONS
 # =============================================================================
 def generate_answer(query: str, chunks: list) -> str:
-    kontext = " ".join(chunks[:3]).strip()
+    kontext = " ".join(chunks[:9]).strip()
     
     # Universal promt for Qwen and Llama
     prompt = (
@@ -58,9 +61,9 @@ def generate_answer(query: str, chunks: list) -> str:
         "  \"decision\": \"yes\" or \"no\" or \"maybe\"\n"
         "}\n"
         "Rules:\n"
-        "- 'yes': the context explicitly and directly confirms the question.\n"
-        "- 'no': the context explicitly denies or contradicts the question.\n"
-        "- 'maybe': the context is insufficient, missing direct proof, or ambiguous.<|eot_id|>\n"
+        "- 'yes': the context shows absolute and undeniable proof.\n"
+        "- 'no': the context proves there is no evidence. Or there are no results at all.\n"
+        "- 'maybe': the context shows that to much is unknown.<|eot_id|>\n"
         "<|start_header_id|>user<|end_header_id|>\n"
         f"Context:\n{kontext}\n\n"
         f"Question: {query}<|eot_id|>\n"
@@ -169,20 +172,6 @@ cm = confusion_matrix(true_valid, pred_valid, labels=labels)
 # =============================================================================
 # PRINTING
 # =============================================================================
-print("\n" + "="*60)
-print("Results:")
-print("="*60)
-print(f"Questions: {len(df_questions)}, Unknown: {pred_labels.count('unknown')}, True: {len(true_valid)}")
-print(f"Accuracy: {accuracy:.4f}")
-for i, l in enumerate(labels):
-    print(f"  {l.upper()}: P={p[i]:.4f} R={r[i]:.4f} F1={f1[i]:.4f}")
-print(f"Macro: P={mp:.4f} R={mr:.4f} F1={mf1:.4f}")
-print("Confusion Matrix:")
-print(pd.DataFrame(cm, index=labels, columns=labels))
-
-if has_retrieval_gt and hit_rates:
-    print(f"\nRetrieval Hit Rate@15: {np.mean(hit_rates):.4f}, MRR: {np.mean(mrr_scores):.4f}")
-print(f"Average latency: {np.mean(latencies):.2f}s")
 
 df_flat = pd.DataFrame(detailed_results).copy()
 for col in ['retrieved_pmcids']:
@@ -197,3 +186,21 @@ pd.DataFrame({'question': df_questions['question'], 'true_label': true_labels, '
     .to_csv(EVAL_DIR / "rag_evaluation_results.csv", index=False)
 
 print(f"\nResults save to {EVAL_DIR}")
+print("\n...evaluation fished")
+print("------------------------------------------------------------------------------\n")
+
+print("Results:")
+print(f"Questions: {len(df_questions)}, Answers: {len(true_valid)}, Omissions: {pred_labels.count('unknown')}")
+print("")
+print(f"Accuracy: {accuracy:.4f}")
+for i, l in enumerate(labels):
+    print(f"  {l.upper()}: P={p[i]:.4f} R={r[i]:.4f} F1={f1[i]:.4f}")
+print(f"\nMacro: P={mp:.4f} R={mr:.4f} F1={mf1:.4f}")
+print("\nConfusion Matrix:")
+print(pd.DataFrame(cm, index=labels, columns=labels))
+
+if has_retrieval_gt and hit_rates:
+    print(f"\nRetrieval Hit Rate@15: {np.mean(hit_rates):.4f}, MRR: {np.mean(mrr_scores):.4f}")
+print(f"Average latency: {np.mean(latencies):.2f}s")
+print("")
+print("")

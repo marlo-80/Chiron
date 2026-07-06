@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-retrieval.py – FAISS‑based retrieval with PubMedBERT embeddings.
+retrieval.py – FAISS-based retrieval with PubMedBERT embeddings.
 Loads embeddings, metadata, FAISS index, and chunk texts once,
 then exposes the `retrieve_with_metadata` function for the rest
 of the pipeline.
@@ -22,8 +22,9 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Embedding model – same PubMedBERT as used during ingestion
 _embed_model = SentenceTransformer("neuml/pubmedbert-base-embeddings", device=device)
+#_embed_model = SentenceTransformer("all-MiniLM-L6-v2", device=device)
 
-# Load pre‑computed embeddings and normalise them for cosine similarity
+# Load pre-computed embeddings and normalise them for cosine similarity
 _embeddings = np.load(EMBEDDING_DIR / "embeddings.npy").astype(np.float32)
 faiss.normalize_L2(_embeddings)
 
@@ -41,7 +42,7 @@ print(f"Retrieval ready: {_index.ntotal} chunks, dimension {_embeddings.shape[1]
 # =============================================================================
 def retrieve_with_metadata(query, k=RETRIEVAL_K):
     """
-    Retrieve the top‑k most similar chunks for a given query.
+    Retrieve the top-k most similar chunks for a given query.
 
     Parameters
     ----------

@@ -15,6 +15,7 @@ Requires:
     db_config.yml (filters and download preferences)
 """
 
+print("Download starting...\n")
 import os
 import sys
 import time
@@ -356,36 +357,32 @@ if not NCBI_EMAIL:
         raise RuntimeError("NCBI_EMAIL environment variable not set and no TTY available.")
 Entrez.email = NCBI_EMAIL
 
-# Prompt whether to include the 69 golden test papers
-if sys.stdin.isatty():
-    include_golden = prompt("Add golden evaluation papers (69 QA articles) to the database? (y/n): ", ["y", "n"])
-else:
-    include_golden = os.environ.get("INCLUDE_GOLDEN", "y").lower()
-# Remember decision (for setup.sh)
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-flag_path = Path(OUTPUT_DIR) / "include_golden.flag"
-with open(flag_path, "w") as f:
-    f.write("1" if include_golden == "y" else "0")
+
 
 # =============================================================================
 # 3. BUILD THE PubMed QUERY
 # =============================================================================
+print("Generating PubMed query from db_config.yml...")
 query_parts = []
 
 if "keywords" in sel:
     kw_subquery = build_boolean_subquery(sel["keywords"], "[TIAB]")
     if kw_subquery: query_parts.append(kw_subquery)
+print(".")
 
 if sel.get("time_period"):
     query_parts.append(f"{sel['time_period']}[DP]")
+print(".")    
 
 if "journals" in sel:
     journal_subquery = build_boolean_subquery(sel["journals"], "[TA]")
     if journal_subquery: query_parts.append(journal_subquery)
+print(".")
 
 if "mesh_subjects" in sel:
     mesh_subquery = build_boolean_subquery(sel["mesh_subjects"], "[MH]")
     if mesh_subquery: query_parts.append(mesh_subquery)
+print(".")
 
 # Fallback: if no filter is defined, query everything
 if not query_parts:
@@ -393,42 +390,65 @@ if not query_parts:
     final_query = "all[sb]"
 else:
     final_query = " AND ".join(query_parts)
+print(".")
 
-print("--- GENERATED PubMed QUERY ---")
-print("----------------------------------------------\n")
 
 # =============================================================================
 # 4. QUICK PRE‑CHECK OF TOTAL HITS
 # =============================================================================
-print("\nSearching PMC …")
 handle = Entrez.esearch(db="pmc", term=final_query, retmax=0)
 search_results = Entrez.read(handle)
 handle.close()
-
+print(".")
 total_count = int(search_results["Count"])
-print(f"Found {total_count} papers in PMC matching the advanced criteria.")
+print(f"...Matching papers: {total_count}\n")
+
+
+#print(f"...found {total_count} papers in PMC matching the advanced criteria.")
 
 # =============================================================================
 # 5. INTERACTIVE SUBSET SELECTION
 # =============================================================================
 if sys.stdin.isatty():
-    print("\nDownload options:")
-    mode = prompt("Download (a)ll papers or specify a (s)ubset? [a/s]: ", ["a", "s"])
+    print("\nDepending on your PC, espacially GPU availability, download and processing of \nthe papers might take a while. For testing or slow computers define a subset.")
+    print("\nDo you want to download:")
+    mode = prompt("   - (a)ll papers\n   - (s)ubset of papers\n \nPress [a/s] accordingly: ", ["a", "s"])
     if mode == "s":
-        num = int(input("Number of papers to download: "))
-        subset_type = prompt("Choose subset: (l)atest or (r)andom? [l/r]: ", ["l", "r"])
+        print("------------------------------------------------------------------------------")
+        num = int(input("\nEnter subset size: "))
+        print("------------------------------------------------------------------------------")
+        subset_type = prompt("\nWich papers do you want:\n   - (l)atest papers\n   - (r)andom papers\n \nPress [l/r] accordingly: ", ["l", "r"])
+        print("------------------------------------------------------------------------------")
     else:
         num = total_count
         subset_type = None
+        print("------------------------------------------------------------------------------")
 else:
     mode = os.environ.get("FETCH_MODE", "a").lower()
     num = int(os.environ.get("FETCH_NUM", total_count))
     subset_type = os.environ.get("FETCH_SUBSET_TYPE", "l").lower()
     print(f"\nNon‑interactive mode: mode={mode}, num={num}, type={subset_type}")
+    print("------------------------------------------------------------------------------")
 
 # Cap the requested number to the total available
 if num > total_count:
     num = total_count
+
+# Prompt whether to include the 69 golden test papers
+if sys.stdin.isatty():
+    print("\nYou can evaluate chunk retrieval and answer generation of the RAG system by \nadding 69 evaluation papers for which defined questions exist.\n")
+    ()
+    include_golden = prompt("Do you want to add those papers to evaluate the database? (y/n): ", ["y", "n"])
+else:
+    include_golden = os.environ.get("INCLUDE_GOLDEN", "y").lower()
+# Remember decision (for setup.sh)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+flag_path = Path(OUTPUT_DIR) / "include_golden.flag"
+with open(flag_path, "w") as f:
+    f.write("1" if include_golden == "y" else "0")
+print("------------------------------------------------------------------------------")    
+
+
 
 # =============================================================================
 # 6. DYNAMIC ID RETRIEVAL (SMART SLICING FOR LARGE SETS)
@@ -437,8 +457,6 @@ all_ids = []
 
 # Fast path: if the subset is below 10 000, we can fetch IDs directly
 if num <= 9999 and mode == "s":
-    print(f"\nSubset ({num}) is under 10 000. Using high‑speed direct ID download …")
-
     # If 'latest' is desired, get IDs sorted by publication date
     sort_param = "pub_date" if subset_type == "l" else ""
 
@@ -451,13 +469,13 @@ if num <= 9999 and mode == "s":
     if subset_type == "r":
         print("Shuffling local ID pool randomly …")
         random.shuffle(all_ids)
-
+        print(".")
     pmcid_list = all_ids
-    print(f"High‑speed sourcing complete: {len(pmcid_list)} IDs ready.")
+    print(f"\n{num} of {len(pmcid_list)} papers will be downloaded...")
+
 
 # Fallback: for large requests, use date‑based slicing to avoid the 9 999‑record limit
 else:
-    print(f"\nLarge amount requested ({num}). Starting adaptive date slicer …")
     import datetime
 
     time_period = sel.get("time_period", "")
@@ -518,7 +536,7 @@ else:
         random.shuffle(all_ids)
 
     pmcid_list = all_ids
-    print(f"\n✅ Sourcing successful! {len(pmcid_list)} IDs ready.")
+    print(f"\n{num} of {len(pmcid_list)} papers will be downloaded...")
 
 # =============================================================================
 # 7. CONFIGURE S3 CLIENT
@@ -621,9 +639,6 @@ def process_s3_paper_live(pmcid):
 # =============================================================================
 # 8. PARALLEL PROCESSING WITH LIVE SUBMISSION CONTROL
 # =============================================================================
-print(f"\nLaunching live sourcing and processing pipeline…")
-print(f"Target subset limit to reach: {num} successfully parsed articles.")
-
 articles = []
 errors = []
 
@@ -642,12 +657,13 @@ with ThreadPoolExecutor(max_workers=128) as executor:
             break
 
     # Progress bar tracks actual successes (total=num)
-    with tqdm(total=num, desc="Securing High‑Quality Articles") as pbar:
+    with tqdm(total=num, desc="Progress", ncols=70) as pbar:
         # Process results asynchronously as they arrive
         while future_map:
             # If the limit is reached, stop the loop
             if len(articles) >= num:
-                print(f"\n[LIMIT REACHED] Successfully secured {len(articles)} articles. Shutting down pool instantly.")
+                #print(f"\n[LIMIT REACHED] Successfully secured {len(articles)} articles. Shutting down pool instantly.")
+                tqdm.write(f"...{len(articles)} papers have been downloaded. Shutting down pool instantly.")
                 # Cancel pending tasks to stop the pool immediately
                 for f in future_map.keys():
                     f.cancel()
@@ -682,19 +698,20 @@ with ThreadPoolExecutor(max_workers=128) as executor:
 
     # When the thread pool closes, check why it closed
     if len(articles) >= num:
-        tqdm.write(f"\nTarget subset of {num} articles successfully reached!")
+        pass
+        #tqdm.write(f"\nTarget subset of {num} articles successfully reached!")
     else:
-        tqdm.write(f"\nPool exhausted before limit was reached. Only {len(articles)} of {num} articles available.")
+        tqdm.write(f"\n[Pool exhausted]. Only {len(articles)} of {num} articles passed the quality check.")
 
 # =============================================================================
 # 9. SAVE RESULTS – SQLITE UPSERT (NO CSV EXPORT)
 # =============================================================================
-print("\n====================================================")
-print("                  GLOBAL STATISTICS                 ")
-print("====================================================")
+
+print("------------------------------------------------------------------------------\n")
+print("DOWNLOAD SUMMARY:")
 print(f"Total valid articles in this run : {len(articles)}")
 print(f"Total processing errors/404      : {len(errors)}")
-print("----------------------------------------------------")
+print("")
 
 if articles:
     new_df = pd.DataFrame(articles)
@@ -726,7 +743,7 @@ if articles:
     added = new_total - old_len
     updated = len(new_df) - added   # the rest were updated (replaced)
 
-    tqdm.write("SQLite database updated.")
+    tqdm.write("SQLite database update:")
     tqdm.write(f"   Articles before this run : {old_len}")
     tqdm.write(f"   Parsed in this run       : {len(new_df)}")
     tqdm.write(f"   ── newly added           : {added}")
@@ -741,6 +758,6 @@ else:
 if errors:
     err_df = pd.DataFrame(errors)
     err_df.to_csv(ERROR_CSV_PATH, index=False)
-    tqdm.write(f"{len(errors)} processing errors saved to {ERROR_CSV_PATH}.")
 
-print("\nFetching fully completed.")
+print("")
+print("")

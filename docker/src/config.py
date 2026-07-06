@@ -30,8 +30,8 @@ DB_PATH       = Path("/data/database/database.db")
 # CHUNKING
 # =============================================================================
 SEKTIONEN     = ['abstract', 'introduction', 'methods', 'results', 'discussion', 'conclusion']
-CHUNK_SIZE    = int(os.environ.get("CHUNK_SIZE", 10))
-OVERLAP       = int(os.environ.get("OVERLAP", 3))
+CHUNK_SIZE    = int(os.environ.get("CHUNK_SIZE", 12))
+OVERLAP       = int(os.environ.get("OVERLAP", 4))
 
 # =============================================================================
 # EMBEDDING

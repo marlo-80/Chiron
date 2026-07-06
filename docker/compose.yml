@@ -5,6 +5,7 @@ services:
   chiron:
     container_name: Chiron
     # GPU & IPC settings required for CUDA acceleration
+    runtime: nvidia
     ipc: host
     privileged: true  
     build:
@@ -26,28 +27,20 @@ services:
       - ./db_config.yml:/app/db_config.yml
     environment:
       - DTD_DIR=/dtd
-      - LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/lib/x86_64-linux-gnu:/usr/local/nvidia/lib64
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
       - RESET_PIPELINES_DIR=true
       - NCBI_EMAIL=your.email@example.com 
       - DB_CONFIG_PATH=/app/db_config.yml
       - HOST_OUTPUT_DIR=../data/database
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu, utility]
-
 
   # =============================================================================
   # OLLAMA - LLM provider
   # =============================================================================
   ollama:
     container_name: Ollama
-    # GPU & IPC settings required for CUDA acceleration  
+    # GPU & IPC settings required for CUDA acceleration 
+    runtime: nvidia
     ipc: host
     privileged: true
     image: ollama/ollama:latest
@@ -58,19 +51,10 @@ services:
     environment:
       - OLLAMA_HOST=0.0.0.0
       - 'OLLAMA_CONFIG={"debug":false}'
-      - CUDA_VISIBLE_DEVICES=0
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
-      - LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/lib/x86_64-linux-gnu:/usr/local/nvidia/lib64
       - OLLAMA_NUM_PARALLEL=1
       - OLLAMA_MAX_LOADED_MODELS=1
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu, utility]
 
   # =============================================================================
   # OPENWEBUI - browser frontend for ollama

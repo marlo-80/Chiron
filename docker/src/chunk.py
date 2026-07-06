@@ -23,6 +23,7 @@ The spaCy pipeline is stripped of unnecessary components (NER, tagger,
 lemmatizer) to maximise speed.
 """
 
+print(f"Chunking starting...\n")
 from concurrent.futures import ProcessPoolExecutor
 import pickle
 import pandas as pd
@@ -33,7 +34,9 @@ import os
 from config import DB_PATH, CHUNKS_DIR, CHUNK_SIZE, OVERLAP, SEKTIONEN
 import sqlite3
 import warnings
+import sys
 warnings.filterwarnings("ignore", category=FutureWarning, module="spacy")
+
 
 # =============================================================================
 # GLOBAL NLP-INITIALIZER
@@ -107,8 +110,22 @@ def main():
     df = pd.read_sql_query("SELECT * FROM articles", conn)
     conn.close()
 
-    print(f"Papers loaded: {len(df)}")
-    print(f"Chunking started...")
+    # Check for existing chunks
+    if os.path.exists(CHUNKS_DIR / "metadaten.pkl"):
+        with open(CHUNKS_DIR / "metadaten.pkl", "rb") as f:
+            existing_metadata = pickle.load(f)
+        existing_pmcids = set(m["pmcid"] for m in existing_metadata)
+        print(f"...found {len(existing_pmcids)} already chunked papers – skipping those...")
+        df = df[~df["pmcid"].isin(existing_pmcids)]
+
+    if df.empty:
+        print("\n...chunking finished")
+        print("")
+        print("")
+        sys.exit(0)
+
+    print(f"...found {len(df)} unchunked papers...")
+
 
     # List of tupels necessary
     paper_tasks = list(df.iterrows())
@@ -121,7 +138,7 @@ def main():
         results = list(tqdm(
             executor.map(process_paper_chunking, paper_tasks, chunksize=50), 
             total=len(df), 
-            desc="Paralleles Chunking"
+            desc="...chunking"
         ))
         
         # Aggregate results
@@ -130,14 +147,32 @@ def main():
             metadaten.extend(local_metadata)
 
     # Write Chunks
-    print("\nSaving chunks...")
-    pd.DataFrame({"chunk_text": chunks}).to_pickle(CHUNKS_DIR / "chunks.pkl")
+    if os.path.exists(CHUNKS_DIR / "chunks.pkl"):
+        old_chunks = pd.read_pickle(CHUNKS_DIR / "chunks.pkl")
+        # If old_chunks exists but is somehow not a DataFrame, convert it
+        if isinstance(old_chunks, list):
+            old_chunks = pd.DataFrame({"chunk_text": old_chunks})
+        chunks = pd.concat([old_chunks, pd.DataFrame({"chunk_text": chunks})], ignore_index=True)
+    else:
+        chunks = pd.DataFrame({"chunk_text": chunks})
+    chunks.to_pickle(CHUNKS_DIR / "chunks.pkl")
+
+    # Save metadata (incremental append)
+    if os.path.exists(CHUNKS_DIR / "metadaten.pkl"):
+        with open(CHUNKS_DIR / "metadaten.pkl", "rb") as f:
+            old_metadata = pickle.load(f)
+        metadaten = old_metadata + metadaten
     with open(CHUNKS_DIR / "metadaten.pkl", "wb") as f:
         pickle.dump(metadaten, f)
 
-    print(f"Created: {len(chunks)} chunks from {len(df)} papers")
+    print("\n...saving chunks...")
+    print(f"Total: {len(chunks)} chunks from {len(metadaten)} papers")
     print(f"Average: {len(chunks)/len(df):.1f} chunks/paper")
     print(f"Saved to: {CHUNKS_DIR}")
+    print("\n...chunking finished")
+
 
 if __name__ == "__main__":
     main()
+    print("")
+    print("")

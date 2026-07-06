@@ -5,6 +5,7 @@ Input:  /data/golden_data/golden69_papers.pkl
 Output: /data/database/database.db (updated in-place)
 """
 
+print("Merge starting...\n")
 import os
 import pickle
 import pandas as pd
@@ -14,13 +15,17 @@ from config import DB_PATH, GOLDEN_DIR
 from schema import ARTICLE_COLUMNS
 from tqdm import tqdm
 
+
 # =============================================================================
 # LOAD GOLDEN PAPERS
 # =============================================================================
 with open(GOLDEN_DIR / "golden69_papers.pkl", "rb") as f:
     df_golden = pickle.load(f)
-print(f"Loaded {len(df_golden)} golden papers from {GOLDEN_DIR / 'golden69_papers.pkl'}")
 
+
+
+
+print(f"...found {len(df_golden)} golden papers...")
 # Keep only the columns that match the database schema
 df_golden = df_golden[ARTICLE_COLUMNS]
 
@@ -32,7 +37,7 @@ if 'tables' in df_golden.columns:
     df_golden['tables'] = df_golden['tables'].apply(
         lambda x: " \n\n---NEW_TABLE---\n\n ".join(x) if isinstance(x, list) else str(x)
     )
-    print("Converted 'tables' list to string for storage.")
+    print("...converted 'tables' list to string for storage...")
 
 # =============================================================================
 # UPSERT INTO SQLITE
@@ -45,7 +50,6 @@ conn.execute(f"CREATE TABLE IF NOT EXISTS articles ({col_defs}, PRIMARY KEY (pmc
 
 # Count existing articles
 old_len = conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0]
-print(f"Articles in database before merge: {old_len}")
 
 # Insert or replace each golden paper
 placeholders = ", ".join(["?"] * len(ARTICLE_COLUMNS))
@@ -58,16 +62,23 @@ conn.close()
 
 added = new_total - old_len  # truly new papers added
 # updated = len(df_golden) - added  # not needed; only new ones matter here
+print("\n...merge finished")
+print("------------------------------------------------------------------------------\n")
 
 # =============================================================================
 # SUMMARY
 # =============================================================================
-tqdm.write(f"Golden papers merged successfully.")
-tqdm.write(f"   Articles before merge  : {old_len}")
+print("MERGE SUMMARY:")
+print(f"Articles before merge: {old_len}")
+print(f"Articles after merge   : {new_total}")
+print("")
+
+tqdm.write("SQLite database update:")
 tqdm.write(f"   Golden papers loaded   : {len(df_golden)}")
 tqdm.write(f"   Newly added            : {added}")
-tqdm.write(f"   Total articles now     : {new_total}")
 tqdm.write(f"   Database path (in container): {DB_PATH}")
 host_dir = os.environ.get("HOST_OUTPUT_DIR", "Host path unknown")
 tqdm.write(f"   Host-side path: {host_dir}/database.db")
-print(f"{added} new golden papers added / updated in the database.")
+print(f"\n{added} new golden papers added to the database.")
+print("")
+print("")
