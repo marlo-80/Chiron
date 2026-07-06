@@ -2,14 +2,14 @@
 
 Chiron builds a custom, offline Retrieval Augmented Generation (RAG) database from PubMed’s open‑access papers. It lets you define exactly which medical topics, journals, and time periods matter to you, downloads only the relevant full‑text articles, and turns them into a searchable index that you can query with any language model you run locally via Ollama.
 
----
+
 
 <p align="center">
 <img src="data/golden_data/chiron.png" alt="Description" width="800">
 </p>
 
 
----
+
 
 ## What Chiron Does
 
@@ -19,7 +19,6 @@ Chiron builds a custom, offline Retrieval Augmented Generation (RAG) database fr
 - **Creates a FAISS index** – The embeddings are stored in a FAISS index for fast cosine‑similarity retrieval.
 - **Answers questions (evaluation mode)** – With the golden‑questions test set, Chiron can evaluate how well the system works. It retrieves the most relevant chunks and sends them together with the question to a language model (Biomistral, Mistral, or any Ollama model) to get a yes/no/maybe answer.
 
----
 
 ## How It Works (Pipeline Overview)
 
@@ -54,22 +53,26 @@ The entire process runs inside Docker and is orchestrated by a single script (`s
    - Calculates accuracy, precision, recall, F1, and a confusion matrix.  
    - Results are saved to `/data/evaluation/`.  
 
----
+
 
 ## Getting Started
 
 ### Prerequisites
+- **Docker** and **Docker Compose**
+- About **5 GB free disk space** for the Docker image, models, and your personal database. Depends on the number of downloaded papers. 
 
-- **Docker** and **Docker Compose** with NVIDIA GPU support (optional but strongly recommended for embedding and LLM inference).  
-- **Ollama** (either installed on the host or running in a separate container – the project already includes an Ollama container in the Docker Compose setup).  
+
+#### Optional:  
 - An **NCBI account** (free) to get an API key (optional but raises the request rate from 3 to 10 per second).  
-- About **20 GB free disk space** for the Docker image, models, and your personal database.
 
-### Installation
+#### For GPU utilization only:
+- Nvidia container toolkit
+
+## Installation
 
 1. **Clone the repository**
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/marlo-80/Chiron
    cd Chiron
     ```
 2. **Configure your database**  
@@ -100,7 +103,7 @@ The entire process runs inside Docker and is orchestrated by a single script (`s
    In `docker/compose.yml`, replace `your.email@example.com` with your own email (required by NCBI for API access).
 
 4. **(Optional) Adjust model and evaluation settings**  
-   In `docker/src/evaluation.py` you can change `MODEL_NAME` to any Ollama model you have pulled. The default is `cniongolo/biomistral`.
+   In `docker/src/evaluation.py` you can change `MODEL_NAME` to any Ollama model you have pulled. Recommended is `lama3-gradient:8b`.
 
 ### Building and Starting the Containers
 
@@ -124,7 +127,7 @@ docker compose -f docker/compose.yml exec ollama ollama pull llama3-gradient:8b
 
 (Any model that works with Ollama will work, e.g., `mistral`, `llama3`, `cniongolo/biomistral`.)
 
----
+
 
 ## Usage
 
@@ -137,9 +140,9 @@ Run the main setup script from the project root:
 ```
 
 The script will:
-- Ask whether you want to add the golden test papers (for evaluation).
 - Ask for the number of papers (subset) and how to select them (latest/random).
 - Fetch, process, chunk, embed, and build the index.
+- Ask whether you want to add the golden test papers (for evaluation).
 - If golden papers were requested, it will also merge them and run the evaluation.
 
 All data is stored in the `data/` directory on your host. The structure is:
@@ -158,13 +161,12 @@ data/
 
 ### Run Only the Evaluation (after setup)
 
-If you already have a database and index, you can re‑evaluate with:
+If you already have a database and index, you can run the evaluation any time with:
 
 ```bash
 docker compose -f docker/compose.yml exec chiron python /app/src/evaluation.py
 ```
 
----
 
 ## Project Structure
 
@@ -193,7 +195,6 @@ Chiron/
 └── README.md
 ```
 
----
 
 ## Disclaimer
 
@@ -201,8 +202,8 @@ The PubMed database is far too large for a complete offline system on consumer h
 
 PubMed papers are freely available and are paired with a curated question‑and‑answer dataset (PubMedQA), making them an ideal sandbox for RAG systems. However, the **language model performance is limited**: Chiron’s retrieval reliably finds the correct document chunks, but current offline LLMs still struggle to derive the correct yes/no/maybe answers from those chunks. This project is a demonstration of how a targeted, offline RAG pipeline can be built – not a professional medical decision support system.
 
----
 
-## License & Acknowledgements
 
-This project is intended for non‑commercial research and educational use only. All PubMed articles retain their original copyright and license terms. Please refer to the individual papers for specific usage conditions.
+<!-- ## License & Acknowledgements
+
+This project is intended for non‑commercial research and educational use only. All PubMed articles retain their original copyright and license terms. Please refer to the individual papers for specific usage conditions. -->
